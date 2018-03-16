@@ -23,8 +23,6 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean bound = false;
 
-    private boolean running = false;
-
     private double savedDistance = 0.0;
 
     private ServiceConnection connection = new ServiceConnection() {
@@ -32,13 +30,11 @@ public class MainActivity extends AppCompatActivity {
         public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
             OdometerService.OdometerBinder odometerBinder = (OdometerService.OdometerBinder) iBinder;
             odometer = odometerBinder.getOdometer();
-            bound = true;
         }
 
         @Override
         public void onServiceDisconnected(ComponentName componentName) {
             bound = false;
-            Log.d("MainActivity", "onServiceDisconnected");
         }
     };
 
@@ -65,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
             case 1:
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     this.bindOdometerService();
-                    running = true;
+                    bound = true;
                 } else {
                     Toast.makeText(this, "You denied the permission", Toast.LENGTH_SHORT).show();
                 }
@@ -81,21 +77,25 @@ public class MainActivity extends AppCompatActivity {
                     1);
         } else {
             this.bindOdometerService();
-            running = true;
+            bound = true;
         }
     }
 
     public void onStopClick(View view) {
-        this.unbindService(connection);
-        odometer = null;
-        running = false;
+        if (bound) {
+            this.unbindService(connection);
+            odometer = null;
+            bound = false;
+        }
     }
 
     public void onResetClick(View view) {
-        this.unbindService(connection);
-        odometer = null;
-        savedDistance = 0.0;
-        running = false;
+        if (bound) {
+            this.unbindService(connection);
+            odometer = null;
+            savedDistance = 0.0;
+            bound = false;
+        }
     }
 
     private void watchMileage() {
@@ -109,20 +109,16 @@ public class MainActivity extends AppCompatActivity {
                 if (odometer != null) {
                     distance += (odometer.getMiles() + lastDistance);
                     savedDistance = distance;
-                    Log.d("MainActivity", "odometer != null");
                 } else {
                     lastDistance = savedDistance;
-                    Log.d("MainActivity", "odometer == null");
                 }
                 String distanceStr;
-                if (running) {
+                if (bound) {
                     distanceStr = String.format("%1$,.2f meters", distance);
                     distanceView.setText(distanceStr);
-                    Log.d("MainActivity", "running == true");
                 } else {
                     distanceStr = String.format("%1$,.2f meters", savedDistance);
                     distanceView.setText(distanceStr);
-                    Log.d("MainActivity", "running == false");
                 }
                 handler.postDelayed(this, 1000);
             }
