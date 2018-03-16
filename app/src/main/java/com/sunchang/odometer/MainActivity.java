@@ -12,6 +12,7 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -37,6 +38,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onServiceDisconnected(ComponentName componentName) {
             bound = false;
+            Log.d("MainActivity", "onServiceDisconnected");
         }
     };
 
@@ -45,12 +47,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         this.watchMileage();
-
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) !=
-                PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                    1);
-        }
     }
 
     @Override
@@ -69,6 +65,7 @@ public class MainActivity extends AppCompatActivity {
             case 1:
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     this.bindOdometerService();
+                    running = true;
                 } else {
                     Toast.makeText(this, "You denied the permission", Toast.LENGTH_SHORT).show();
                 }
@@ -78,17 +75,25 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onStartClick(View view) {
-        this.bindOdometerService();
-        running = true;
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) !=
+                PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    1);
+        } else {
+            this.bindOdometerService();
+            running = true;
+        }
     }
 
     public void onStopClick(View view) {
         this.unbindService(connection);
+        odometer = null;
         running = false;
     }
 
     public void onResetClick(View view) {
         this.unbindService(connection);
+        odometer = null;
         savedDistance = 0.0;
         running = false;
     }
@@ -97,23 +102,27 @@ public class MainActivity extends AppCompatActivity {
         final TextView distanceView = (TextView) this.findViewById(R.id.distance);
         final Handler handler = new Handler();
         handler.post(new Runnable() {
-            private double lastDistance;
+            private double lastDistance = 0.0;
             @Override
             public void run() {
                 double distance = 0.0;
                 if (odometer != null) {
                     distance += (odometer.getMiles() + lastDistance);
                     savedDistance = distance;
+                    Log.d("MainActivity", "odometer != null");
                 } else {
                     lastDistance = savedDistance;
+                    Log.d("MainActivity", "odometer == null");
                 }
                 String distanceStr;
                 if (running) {
                     distanceStr = String.format("%1$,.2f meters", distance);
                     distanceView.setText(distanceStr);
+                    Log.d("MainActivity", "running == true");
                 } else {
                     distanceStr = String.format("%1$,.2f meters", savedDistance);
                     distanceView.setText(distanceStr);
+                    Log.d("MainActivity", "running == false");
                 }
                 handler.postDelayed(this, 1000);
             }

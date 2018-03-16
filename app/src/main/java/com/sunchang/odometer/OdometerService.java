@@ -8,6 +8,7 @@ import android.location.LocationManager;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.util.Log;
 
 public class OdometerService extends Service {
 
@@ -61,6 +62,13 @@ public class OdometerService extends Service {
         LocationManager locationManager = (LocationManager) this.getSystemService(LOCATION_SERVICE);
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000,
                 1, listener);
+        Log.d("OdometerService", "onCreate");
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        Log.d("OdometerService", "onDestroy");
     }
 
     public double getMiles() {
